@@ -1,51 +1,129 @@
+
 const express = require('express');
 const cors = require('cors');
-var mysql = require('mysql');
+const mysql = require('mysql');
 
-var conn = mysql.createConnection({
-    host: 'localhost:3306',
+const connection = mysql.createConnection({
+    host: 'localhost',
     user: 'root',
     password: '',
-    database: 'mercado007'
+    database: 'mercado'
 });
-conn.connect(); 
+
+connection.query((erro, resultado) => {
+
+})
+
+
+
 const app = express();
 app.use(cors({
     origin: 'http://localhost.com',
-    methods: ['GET'],
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
     allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
 app.use(express.urlencoded({
     extended: true
 }));
+app.use(express.json())
 
-
-// Consultar todo os produtos
+// Consultar todo os ids de mercado
 app.get('/mercado', (req, res) => {
 
-    conn.query('select * from mercado', (erro, resultado) => {
+    connection.query('select * from mercados', (erro, resultado) => {
         try {
             const mer = resultado.map(mer => ({
                 id: mer.id,
-                nome_produto:mer.nome_produto,
+                nome_produto: mer.nome_produto,
                 valor: mer.valor,
-                empresa_produto:mer.empresa_produto,
+                empresa_produto: mer.empresa_produto,
                 forma_pagamento: mer.forma_pagamento,
                 data_criacao: mer.data_criacao,
                 data_atualizacao: mer.data_atualizacao,
             }));
-            res.json(resultado);
-            console.log(resultado);
+            res.json(mer);
+            console.log(mer);
         } catch (erro) {
-            res.send('Não existe nenhum mercado!!');
-            console.error('Não existe nenhum mercado!!', erro);
+            res.send('Não existe este produto cadastrado!!');
+            console.error('Não existe este produto cadastrado!!', erro);
         }
     });
 
 });
 
+//Consultar cada produto pelo o id
+app.get('/mercado/:id', (req, res) => {
+    const merId = req.params.id;
+    connection.query(`select * from mercados where id = ${merId}`, (erro, resultado) => {
+        try {
+            const mer = resultado.map(mer => ({
+                id: mer.id,
+                nome_produto: mer.nome_produto,
+                valor: mer.valor,
+                empresa_produto: mer.empresa_produto,
+                forma_pagamento: mer.forma_pagamento,
+                data_criacao: mer.data_criacao,
+                data_atualizacao: mer.data_atualizacao,
+            }));
+            res.json(mer);
+            console.log(mer);
+        } catch (erro) {
+            res.send('Não existe produto com esse ID');
+            console.error('Não existe produto com esse ID', erro);
+        }
+    });
+});
+
+//Deletando pelo o id
+app.delete('/mercado/deletar/:id', (req, res) => {
+    const merId = req.params.id;
+    res.send(`mercado ${merId} excluído com sucesso`);
+    connection.query(`delete from mercados where id = ${merId}`, (erro, resultado) => {
+    if(erro){
+        console.error(erro)
+    }
+    })
+});
+
+//Criando um novo mercado 
+app.post('/mercado/criar', (req, res) => {
+    const {id, nome_produto, valor, empresa_produto, forma_pagamento, data_criacao, data_atualizacao } = req.body;
+    console.log(req.body)
+    try {
+            connection.query(`insert into mercados (id, nome_produto, valor, empresa_produto, forma_pagamento, data_criacao, data_atualizacao) values ('${Number(id)}', '${nome_produto}', '${Number(valor)}', '${empresa_produto}', '${forma_pagamento}', '${data_criacao}', '${data_atualizacao}')`, (erro, resultado) => {
+                res.send('produto cadastrado com sucesso!!');
+                if (erro){
+                    console.error(erro)
+                }
+            });
+
+        } catch (erro) {
+            res.send('Erro ao criar produto');
+            console.error('Erro ao criar produto', erro);
+        }
+    });
+
+
+//Editando o mercado pelo o id
+app.put('/mercado/editar/:id', (req, res) => {
+    const merId = req.params.id;
+    const date = new Date()
+    const dia = date.getDate()
+    const mes = date.getMonth() + 1
+    const ano = date.getFullYear()
+    const dataformatada = `${dia}/${mes}/${ano}`
+    
+    const {nome_produto, valor, empresa_produto, forma_pagamento, data_atualizacao } = req.body;
+    console.log('BODY -> ', req.body)
+
+    connection.query(`update mercados set nome_produto = '${nome_produto}', valor = '${valor}' where id ='${Number(merId)}'`, (erro, resultado) => {
+        res.send(`mercado ${merId} editado com sucesso!!`);
+       if(erro){
+        console.error(erro)
+       }
+    });
+});
+
 
 app.listen(3000);
-
-console.log('Servidor iniciado na porta 3000');
